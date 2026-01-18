@@ -1,0 +1,7 @@
+{
+  "name": "Copy of SmartPantry AI",
+  "description": "An interactive, AI-driven meal planning and cooking assistant that generates recipes and guided instructions from your available ingredients.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
