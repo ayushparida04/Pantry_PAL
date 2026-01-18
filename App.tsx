@@ -6,6 +6,7 @@ import { PantryView } from './components/PantryView';
 import { RecipeSuggestions } from './components/RecipeSuggestions';
 import { RecipeDetail } from './components/RecipeDetail';
 import { CookingMode } from './components/CookingMode';
+import { GuideView } from './components/GuideView';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>(AppView.PANTRY);
@@ -17,7 +18,13 @@ const App: React.FC = () => {
   // Persistence
   useEffect(() => {
     const saved = localStorage.getItem('smart_pantry');
-    if (saved) setPantry(JSON.parse(saved));
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      setPantry(parsed);
+      if (parsed.length === 0) setCurrentView(AppView.GUIDE);
+    } else {
+      setCurrentView(AppView.GUIDE); // Show guide on first visit
+    }
   }, []);
 
   useEffect(() => {
@@ -25,7 +32,6 @@ const App: React.FC = () => {
   }, [pantry]);
 
   const addIngredient = (input: string) => {
-    // Simple parsing logic: handle "2 eggs" -> { name: "eggs", amount: "2" }
     const match = input.match(/^(\d+\s*\w*)?\s*(.*)$/);
     const amount = match?.[1]?.trim() || '';
     const name = match?.[2]?.trim() || input;
@@ -34,9 +40,14 @@ const App: React.FC = () => {
       id: crypto.randomUUID(),
       name,
       amount,
-      category: 'Ingredient' // AI could improve this later
+      category: 'Ingredient'
     };
-    setPantry([...pantry, newIngredient]);
+    setPantry(prev => [...prev, newIngredient]);
+  };
+
+  const handleQuickAdd = (items: string[]) => {
+    items.forEach(item => addIngredient(item));
+    // Optional: Toast or feedback here
   };
 
   const removeIngredient = (id: string) => {
@@ -44,7 +55,10 @@ const App: React.FC = () => {
   };
 
   const findRecipes = async () => {
-    if (pantry.length === 0) return;
+    if (pantry.length === 0) {
+      setCurrentView(AppView.PANTRY);
+      return;
+    }
     setLoading(true);
     setCurrentView(AppView.DISCOVER);
     try {
@@ -74,7 +88,6 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen pb-12">
-      {/* Navigation */}
       <nav className="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between sticky top-0 z-40 backdrop-blur-md bg-white/80">
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => setCurrentView(AppView.PANTRY)}>
           <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-200">
@@ -83,24 +96,37 @@ const App: React.FC = () => {
           <span className="font-serif text-xl font-bold text-slate-800 hidden sm:inline">SmartPantry AI</span>
         </div>
         
-        <div className="flex gap-4">
+        <div className="flex gap-2 sm:gap-4">
+           <button 
+             onClick={() => setCurrentView(AppView.GUIDE)}
+             className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentView === AppView.GUIDE ? 'bg-emerald-50 text-emerald-700' : 'text-slate-500 hover:text-slate-800'}`}
+           >
+             Guide
+           </button>
            <button 
              onClick={() => setCurrentView(AppView.PANTRY)}
-             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${currentView === AppView.PANTRY ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-800'}`}
+             className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentView === AppView.PANTRY ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-800'}`}
            >
-             My Pantry
+             Pantry
            </button>
            <button 
              onClick={() => findRecipes()}
              disabled={pantry.length === 0}
-             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${currentView === AppView.DISCOVER ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-800'} disabled:opacity-50`}
+             className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentView === AppView.DISCOVER ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-800'} disabled:opacity-50`}
            >
-             Discovery
+             Discover
            </button>
         </div>
       </nav>
 
       <main className="container mx-auto mt-8">
+        {currentView === AppView.GUIDE && (
+          <GuideView 
+            onQuickAdd={handleQuickAdd} 
+            onNavigateToPantry={() => setCurrentView(AppView.PANTRY)} 
+          />
+        )}
+
         {currentView === AppView.PANTRY && (
           <PantryView 
             ingredients={pantry} 

@@ -1,20 +1,44 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# 🥘 SmartPantry AI 
+### *Intelligent Meal Planner & Cooking Assistant*
 
-# Run and deploy your AI Studio app
+SmartPantry AI is a high-performance, AI-driven kitchen companion that transforms your available ingredients into gourmet meal plans. Powered by **Google Gemini**, it eliminates the "what's for dinner?" stress while actively reducing food waste.
 
-This contains everything you need to run your app locally.
+---
 
-View your app in AI Studio: https://ai.studio/apps/drive/1-X16KPFD50uWiVR6LEC6A_tCfIqFqLrI
+## 🚀 Key Features
 
-## Run Locally
+*   **🧠 Brainstorming with Gemini:** Instantly generates creative recipes based on your specific pantry stock.
+*   **📋 Adaptive Ingredient Parsing:** Intelligently understands natural language inputs like "3 large eggs" or "half a bunch of cilantro."
+*   **👨‍🍳 Interactive Cooking Mode:** A full-screen, distraction-free interface that guides you step-by-step through the cooking process.
+*   **🥗 Nutritional Intelligence:** Automatic estimation of calories, protein, carbs, and fats for every dish.
+*   **🖼️ AI Food Photography:** Uses Gemini's imaging capabilities to visualize your meal before you even start cooking.
+*   **♻️ Waste Reducer:** Prioritizes recipes that use up the ingredients you already have, saving money and the planet.
 
-**Prerequisites:**  Node.js
+---
 
+## 🛠️ How to Get Started
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+1.  **Stock Your Pantry:** Go to the **Pantry** tab and type in what you have.
+2.  **Discover Recipes:** Click **Find Recipes** to let Gemini curate a personalized menu for you.
+3.  **Check Details:** View missing ingredients and smart substitutions for items you might be low on.
+4.  **Cook Like a Pro:** Hit **Start Guided Cooking** to enter an interactive, step-by-step walkthrough.
+
+---
+
+## 💻 Tech Stack
+
+- **Frontend:** React + TypeScript + Tailwind CSS
+- **Intelligence:** Google Gemini API (`gemini-3-flash-preview` & `gemini-2.5-flash-image`)
+- **State Management:** React Hooks & Local Storage persistence
+- **Styling:** Modern, responsive UI with `Inter` and `Playfair Display` typography
+
+---
+
+## 🏗️ Roles & Responsibilities
+*   **Core Logic:** Designed modular LLM workflow for recipe generation and parsing.
+*   **UI/UX:** Developed the interactive "Cooking Mode" and "Pantry Management" systems.
+*   **Integration:** Seamlessly connected Gemini API for multimodal (text & image) output.
+
+---
+
+*Built with ❤️ for home cooks everywhere.*
