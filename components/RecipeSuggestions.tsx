@@ -1,6 +1,7 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { RecipeSummary } from '../types';
+import { generateRecipeImage } from '../services/geminiService';
 
 interface RecipeSuggestionsProps {
   recipes: RecipeSummary[];
@@ -8,6 +9,74 @@ interface RecipeSuggestionsProps {
   onBack: () => void;
   loading: boolean;
 }
+
+const RecipeCard: React.FC<{ recipe: RecipeSummary; onClick: () => void }> = ({ recipe, onClick }) => {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [loadingImage, setLoadingImage] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchImage = async () => {
+      try {
+        const url = await generateRecipeImage(recipe.title);
+        if (mounted) {
+          setImageUrl(url);
+        }
+      } catch (error) {
+        console.error("Failed to generate image for card", error);
+      } finally {
+        if (mounted) {
+          setLoadingImage(false);
+        }
+      }
+    };
+    fetchImage();
+    return () => { mounted = false; };
+  }, [recipe.title]);
+
+  return (
+    <div
+      onClick={onClick}
+      className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer flex flex-col h-full group"
+    >
+      <div className="h-48 bg-slate-200 flex items-center justify-center relative overflow-hidden">
+         {imageUrl ? (
+           <img src={imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt={recipe.title} />
+         ) : (
+           <div className="flex flex-col items-center justify-center text-slate-400">
+             {loadingImage ? (
+                <>
+                  <div className="w-8 h-8 border-2 border-slate-300 border-t-emerald-500 rounded-full animate-spin mb-2"></div>
+                  <span className="text-xs font-medium">Visualizing...</span>
+                </>
+             ) : (
+                <svg className="w-12 h-12 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+             )}
+           </div>
+         )}
+         <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-emerald-700 shadow-sm z-10">
+           {recipe.matchPercentage}% Match
+         </div>
+      </div>
+      <div className="p-6 space-y-4 flex-1 flex flex-col">
+        <div className="space-y-2">
+          <h3 className="text-xl font-bold text-slate-800 leading-tight group-hover:text-emerald-700 transition-colors">{recipe.title}</h3>
+          <p className="text-slate-500 text-sm line-clamp-2">{recipe.description}</p>
+        </div>
+        <div className="flex items-center gap-4 text-xs font-medium text-slate-400 mt-auto pt-4 border-t border-slate-50">
+          <span className="flex items-center gap-1">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            {recipe.prepTime}
+          </span>
+          <span className="flex items-center gap-1">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            {recipe.difficulty}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const RecipeSuggestions: React.FC<RecipeSuggestionsProps> = ({ recipes, onSelect, onBack, loading }) => {
   if (loading) {
@@ -30,34 +99,11 @@ export const RecipeSuggestions: React.FC<RecipeSuggestionsProps> = ({ recipes, o
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {recipes.map((recipe) => (
-          <div
-            key={recipe.id}
-            onClick={() => onSelect(recipe)}
-            className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer flex flex-col h-full"
-          >
-            <div className="h-48 bg-slate-200 flex items-center justify-center relative">
-               <img src={`https://picsum.photos/seed/${recipe.id}/400/300`} className="w-full h-full object-cover opacity-80" alt={recipe.title} />
-               <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-emerald-700 shadow-sm">
-                 {recipe.matchPercentage}% Match
-               </div>
-            </div>
-            <div className="p-6 space-y-4 flex-1 flex flex-col">
-              <div className="space-y-2">
-                <h3 className="text-xl font-bold text-slate-800 leading-tight">{recipe.title}</h3>
-                <p className="text-slate-500 text-sm line-clamp-2">{recipe.description}</p>
-              </div>
-              <div className="flex items-center gap-4 text-xs font-medium text-slate-400 mt-auto pt-4 border-t border-slate-50">
-                <span className="flex items-center gap-1">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  {recipe.prepTime}
-                </span>
-                <span className="flex items-center gap-1">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  {recipe.difficulty}
-                </span>
-              </div>
-            </div>
-          </div>
+          <RecipeCard 
+            key={recipe.id} 
+            recipe={recipe} 
+            onClick={() => onSelect(recipe)} 
+          />
         ))}
       </div>
     </div>

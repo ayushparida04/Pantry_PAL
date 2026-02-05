@@ -4,7 +4,47 @@ import { RecipeSummary, DetailedRecipe } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
+// --- Cache Implementation ---
+const CACHE_PREFIX = 'smartpantry_v1_';
+
+const getCache = <T>(key: string): T | null => {
+  try {
+    const item = localStorage.getItem(CACHE_PREFIX + key);
+    return item ? JSON.parse(item) : null;
+  } catch (e) {
+    console.warn('Cache read error', e);
+    return null;
+  }
+};
+
+const setCache = <T>(key: string, data: T): void => {
+  try {
+    // Basic storage management: If local storage is full, we could clear it, 
+    // but for now we just catch the error to prevent app crash.
+    localStorage.setItem(CACHE_PREFIX + key, JSON.stringify(data));
+  } catch (e) {
+    console.warn('Cache write error - likely quota exceeded', e);
+  }
+};
+
+// Generate a consistent key for ingredients regardless of order
+const generateIngredientsKey = (ingredients: string[]): string => {
+  return ingredients
+    .map(i => i.trim().toLowerCase())
+    .sort()
+    .join('|');
+};
+
 export const generateRecipeSuggestions = async (ingredients: string[]): Promise<RecipeSummary[]> => {
+  const ingredientsKey = generateIngredientsKey(ingredients);
+  const cacheKey = `suggestions_${ingredientsKey}`;
+
+  const cachedData = getCache<RecipeSummary[]>(cacheKey);
+  if (cachedData) {
+    console.log("Serving recipe suggestions from cache");
+    return cachedData;
+  }
+
   const prompt = `Based on these ingredients: ${ingredients.join(", ")}, suggest 3-4 possible recipes. 
   Focus on reducing food waste. Provide brief summaries.`;
 
@@ -32,7 +72,9 @@ export const generateRecipeSuggestions = async (ingredients: string[]): Promise<
   });
 
   try {
-    return JSON.parse(response.text || "[]");
+    const data = JSON.parse(response.text || "[]");
+    setCache(cacheKey, data);
+    return data;
   } catch (e) {
     console.error("Failed to parse recipes", e);
     return [];
@@ -40,6 +82,16 @@ export const generateRecipeSuggestions = async (ingredients: string[]): Promise<
 };
 
 export const getDetailedRecipe = async (title: string, availableIngredients: string[]): Promise<DetailedRecipe> => {
+  // We include ingredients in the key because the "missing ingredients" logic depends on what the user currently has.
+  const ingredientsKey = generateIngredientsKey(availableIngredients);
+  const cacheKey = `detail_${title.trim().toLowerCase()}_${ingredientsKey}`;
+
+  const cachedData = getCache<DetailedRecipe>(cacheKey);
+  if (cachedData) {
+    console.log("Serving detailed recipe from cache");
+    return cachedData;
+  }
+
   const prompt = `Generate a detailed recipe for "${title}". 
   The user has: ${availableIngredients.join(", ")}. 
   Highlight which ingredients are missing. Include nutrition and substitutions.`;
@@ -99,10 +151,20 @@ export const getDetailedRecipe = async (title: string, availableIngredients: str
     }
   });
 
-  return JSON.parse(response.text || "{}");
+  const data = JSON.parse(response.text || "{}");
+  setCache(cacheKey, data);
+  return data;
 };
 
 export const generateRecipeImage = async (title: string): Promise<string | null> => {
+  const cacheKey = `image_${title.trim().toLowerCase()}`;
+  
+  const cachedData = getCache<string>(cacheKey);
+  if (cachedData) {
+    console.log("Serving image from cache");
+    return cachedData;
+  }
+
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
@@ -118,7 +180,9 @@ export const generateRecipeImage = async (title: string): Promise<string | null>
 
     for (const part of response.candidates?.[0]?.content?.parts || []) {
       if (part.inlineData) {
-        return `data:image/png;base64,${part.inlineData.data}`;
+        const imageUrl = `data:image/png;base64,${part.inlineData.data}`;
+        setCache(cacheKey, imageUrl);
+        return imageUrl;
       }
     }
     return null;
