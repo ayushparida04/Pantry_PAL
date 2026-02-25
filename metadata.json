@@ -1,0 +1,7 @@
+{
+  "name": "SmartPantry AI - Intelligent Kitchen",
+  "description": "Interactive AI-driven meal planning and cooking assistant. Reduce waste, cook smarter, and discover new recipes from your available ingredients.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
