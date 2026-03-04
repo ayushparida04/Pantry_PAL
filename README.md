@@ -1,44 +1,66 @@
-# 🥘 SmartPantry AI 
-### *Intelligent Meal Planner & Cooking Assistant*
+# Pantry_PAL (SmartPantry AI)
 
-SmartPantry AI is a high-performance, AI-driven kitchen companion that transforms your available ingredients into gourmet meal plans. Powered by **Google Gemini**, it eliminates the "what's for dinner?" stress while actively reducing food waste.
+Pantry_PAL is an AI-powered kitchen assistant that helps you turn pantry ingredients into practical recipes, reduce food waste, and get step-by-step cooking guidance. The project now uses a **React + TypeScript frontend** and a **Python FastAPI + LangChain backend**.
 
----
+## Architecture
 
-## 🚀 Key Features
+```mermaid
+flowchart LR
+    A[React + TypeScript Frontend\nVite @ localhost:5173] -->|REST API| B[FastAPI Backend @ localhost:8000]
+    B --> C[LangChain Chains\nRecipe Suggestions + Detail]
+    B --> D[Google Gemini API\ngemini-2.0-flash]
+    B --> E[(SQLite Database)]
+    E --> E1[pantry_items]
+    E --> E2[cached_recipes]
+```
 
-*   **🧠 Brainstorming with Gemini:** Instantly generates creative recipes based on your specific pantry stock.
-*   **📋 Adaptive Ingredient Parsing:** Intelligently understands natural language inputs like "3 large eggs" or "half a bunch of cilantro."
-*   **👨‍🍳 Interactive Cooking Mode:** A full-screen, distraction-free interface that guides you step-by-step through the cooking process.
-*   **🥗 Nutritional Intelligence:** Automatic estimation of calories, protein, carbs, and fats for every dish.
-*   **🖼️ AI Food Photography:** Uses Gemini's imaging capabilities to visualize your meal before you even start cooking.
-*   **♻️ Waste Reducer:** Prioritizes recipes that use up the ingredients you already have, saving money and the planet.
+## Tech Stack
 
----
+- React
+- TypeScript
+- Tailwind CSS
+- Python
+- FastAPI
+- LangChain
+- Google Gemini
+- SQLite
+- SQLAlchemy
+- Pydantic
+- Vite
 
-## 🛠️ How to Get Started
+## How to run locally
 
-1.  **Stock Your Pantry:** Go to the **Pantry** tab and type in what you have.
-2.  **Discover Recipes:** Click **Find Recipes** to let Gemini curate a personalized menu for you.
-3.  **Check Details:** View missing ingredients and smart substitutions for items you might be low on.
-4.  **Cook Like a Pro:** Hit **Start Guided Cooking** to enter an interactive, step-by-step walkthrough.
+### 1) Backend setup
 
----
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+# Edit .env and set GEMINI_API_KEY
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
 
-## 💻 Tech Stack
+### 2) Frontend setup
 
-- **Frontend:** React + TypeScript + Tailwind CSS
-- **Intelligence:** Google Gemini API (`gemini-3-flash-preview` & `gemini-2.5-flash-image`)
-- **State Management:** React Hooks & Local Storage persistence
-- **Styling:** Modern, responsive UI with `Inter` and `Playfair Display` typography
+```bash
+# from repo root
+cd frontend
+cp .env.example .env
+npm install
+npm run dev
+```
 
----
+The frontend reads `VITE_API_BASE_URL` from `frontend/.env` and defaults to `http://localhost:8000`.
 
-## 🏗️ Roles & Responsibilities
-*   **Core Logic:** Designed modular LLM workflow for recipe generation and parsing.
-*   **UI/UX:** Developed the interactive "Cooking Mode" and "Pantry Management" systems.
-*   **Integration:** Seamlessly connected Gemini API for multimodal (text & image) output.
+## API Overview
 
----
-
-*Built with ❤️ for home cooks everywhere.*
+- `GET /api/pantry`
+- `POST /api/pantry`
+- `DELETE /api/pantry/{item_id}`
+- `DELETE /api/pantry`
+- `POST /api/recipes/suggestions`
+- `POST /api/recipes/detail`
+- `POST /api/recipes/image`
+- `POST /api/recipes/chat`
