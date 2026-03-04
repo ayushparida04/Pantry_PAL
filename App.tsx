@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { AppView, Ingredient, RecipeSummary, DetailedRecipe } from './types';
 import { generateRecipeSuggestions, getDetailedRecipe } from './services/geminiService';
+import { addPantryItem, clearPantryItems, fetchPantryItems, removePantryItem } from './services/pantryService';
 import { PantryView } from './components/PantryView';
 import { RecipeSuggestions } from './components/RecipeSuggestions';
 import { RecipeDetail } from './components/RecipeDetail';
@@ -15,43 +15,48 @@ const App: React.FC = () => {
   const [selectedRecipe, setSelectedRecipe] = useState<DetailedRecipe | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Persistence
   useEffect(() => {
-    const saved = localStorage.getItem('smart_pantry');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      setPantry(parsed);
-      if (parsed.length === 0) setCurrentView(AppView.GUIDE);
-    } else {
-      setCurrentView(AppView.GUIDE); // Show guide on first visit
-    }
+    const loadPantry = async () => {
+      try {
+        const items = await fetchPantryItems();
+        setPantry(items);
+        if (items.length === 0) setCurrentView(AppView.GUIDE);
+      } catch (error) {
+        console.error('Failed to fetch pantry from backend', error);
+        setCurrentView(AppView.GUIDE);
+      }
+    };
+
+    loadPantry();
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem('smart_pantry', JSON.stringify(pantry));
-  }, [pantry]);
-
-  const addIngredient = (input: string) => {
+  const addIngredient = async (input: string) => {
     const match = input.match(/^(\d+\s*\w*)?\s*(.*)$/);
     const amount = match?.[1]?.trim() || '';
     const name = match?.[2]?.trim() || input;
-    
-    const newIngredient: Ingredient = {
-      id: crypto.randomUUID(),
+
+    const newIngredient = await addPantryItem({
       name,
       amount,
       category: 'Ingredient'
-    };
-    setPantry(prev => [...prev, newIngredient]);
+    });
+    setPantry(prev => [newIngredient, ...prev]);
   };
 
-  const handleQuickAdd = (items: string[]) => {
-    items.forEach(item => addIngredient(item));
-    // Optional: Toast or feedback here
+  const handleQuickAdd = async (items: string[]) => {
+    for (const item of items) {
+      await addIngredient(item);
+    }
   };
 
-  const removeIngredient = (id: string) => {
-    setPantry(pantry.filter(i => i.id !== id));
+  const removeIngredient = async (id: string) => {
+    await removePantryItem(id);
+    setPantry(prev => prev.filter(i => i.id !== id));
+  };
+
+  const clearIngredients = async () => {
+    await clearPantryItems();
+    setPantry([]);
   };
 
   const findRecipes = async () => {
@@ -95,21 +100,21 @@ const App: React.FC = () => {
           </div>
           <span className="font-serif text-xl font-bold text-slate-800 hidden sm:inline">SmartPantry AI</span>
         </div>
-        
+
         <div className="flex gap-2 sm:gap-4">
-           <button 
+           <button
              onClick={() => setCurrentView(AppView.GUIDE)}
              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentView === AppView.GUIDE ? 'bg-emerald-50 text-emerald-700' : 'text-slate-500 hover:text-slate-800'}`}
            >
              Guide
            </button>
-           <button 
+           <button
              onClick={() => setCurrentView(AppView.PANTRY)}
              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentView === AppView.PANTRY ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-800'}`}
            >
              Pantry
            </button>
-           <button 
+           <button
              onClick={() => findRecipes()}
              disabled={pantry.length === 0}
              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentView === AppView.DISCOVER ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-800'} disabled:opacity-50`}
@@ -121,33 +126,33 @@ const App: React.FC = () => {
 
       <main className="container mx-auto mt-8">
         {currentView === AppView.GUIDE && (
-          <GuideView 
-            onQuickAdd={handleQuickAdd} 
-            onNavigateToPantry={() => setCurrentView(AppView.PANTRY)} 
+          <GuideView
+            onQuickAdd={handleQuickAdd}
+            onNavigateToPantry={() => setCurrentView(AppView.PANTRY)}
           />
         )}
 
         {currentView === AppView.PANTRY && (
-          <PantryView 
-            ingredients={pantry} 
-            onAdd={addIngredient} 
+          <PantryView
+            ingredients={pantry}
+            onAdd={addIngredient}
             onRemove={removeIngredient}
-            onClear={() => setPantry([])}
+            onClear={clearIngredients}
             onSuggest={findRecipes}
           />
         )}
 
         {currentView === AppView.DISCOVER && (
-          <RecipeSuggestions 
-            recipes={suggestions} 
-            onSelect={handleSelectRecipe} 
+          <RecipeSuggestions
+            recipes={suggestions}
+            onSelect={handleSelectRecipe}
             onBack={() => setCurrentView(AppView.PANTRY)}
             loading={loading}
           />
         )}
 
         {currentView === AppView.RECIPE_DETAIL && selectedRecipe && (
-          <RecipeDetail 
+          <RecipeDetail
             recipe={selectedRecipe}
             onBack={() => setCurrentView(AppView.DISCOVER)}
             onCook={() => setCurrentView(AppView.COOKING_MODE)}
@@ -155,7 +160,7 @@ const App: React.FC = () => {
         )}
 
         {currentView === AppView.COOKING_MODE && selectedRecipe && (
-          <CookingMode 
+          <CookingMode
             recipe={selectedRecipe}
             onExit={() => setCurrentView(AppView.RECIPE_DETAIL)}
           />

@@ -1,5 +1,5 @@
-
 import React, { useState } from 'react';
+import { askCookingQuestion } from '../services/geminiService';
 import { DetailedRecipe } from '../types';
 
 interface CookingModeProps {
@@ -7,16 +7,49 @@ interface CookingModeProps {
   onExit: () => void;
 }
 
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export const CookingMode: React.FC<CookingModeProps> = ({ recipe, onExit }) => {
   const [currentStep, setCurrentStep] = useState(0);
+  const [question, setQuestion] = useState('');
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [chatLoading, setChatLoading] = useState(false);
 
   const totalSteps = recipe.instructions.length;
   const progress = ((currentStep + 1) / totalSteps) * 100;
   const step = recipe.instructions[currentStep];
 
+  const submitQuestion = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!question.trim() || chatLoading) {
+      return;
+    }
+
+    const userMessage: ChatMessage = { role: 'user', content: question.trim() };
+    const nextHistory = [...chatHistory, userMessage];
+    setChatHistory(nextHistory);
+    setQuestion('');
+    setChatLoading(true);
+
+    try {
+      const response = await askCookingQuestion(recipe.title, userMessage.content, nextHistory);
+      setChatHistory((prev) => [...prev, { role: 'assistant', content: response }]);
+    } catch (error) {
+      setChatHistory((prev) => [
+        ...prev,
+        { role: 'assistant', content: 'Sorry, I could not answer right now. Please try again.' },
+      ]);
+      console.error(error);
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-slate-900 z-[100] flex flex-col overflow-hidden text-white">
-      {/* Top Bar */}
       <div className="p-6 flex items-center justify-between border-b border-slate-800">
         <div className="flex items-center gap-4">
            <button onClick={onExit} className="p-2 hover:bg-slate-800 rounded-full transition-colors">
@@ -32,10 +65,8 @@ export const CookingMode: React.FC<CookingModeProps> = ({ recipe, onExit }) => {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col md:flex-row">
-        {/* Step Guide */}
-        <div className="flex-1 p-8 md:p-16 flex flex-col justify-center max-w-4xl mx-auto space-y-12">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+        <div className="flex-1 p-8 md:p-16 flex flex-col justify-center max-w-4xl mx-auto space-y-12 overflow-y-auto">
            <div className="space-y-4">
               <span className="text-emerald-400 font-bold uppercase tracking-widest text-sm">Current Task</span>
               <h3 className="text-4xl md:text-6xl font-bold leading-tight animate-slideUp">
@@ -56,7 +87,6 @@ export const CookingMode: React.FC<CookingModeProps> = ({ recipe, onExit }) => {
            )}
         </div>
 
-        {/* Sidebar Ingredients (Desktop) */}
         <div className="hidden lg:block w-80 bg-slate-800/50 p-8 overflow-y-auto">
           <h4 className="font-bold text-slate-400 uppercase text-xs tracking-widest mb-6">Ingredients</h4>
           <ul className="space-y-4">
@@ -70,13 +100,43 @@ export const CookingMode: React.FC<CookingModeProps> = ({ recipe, onExit }) => {
         </div>
       </div>
 
-      {/* Progress Bar (Mobile) */}
       <div className="md:hidden w-full h-1 bg-slate-800">
           <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${progress}%` }}></div>
       </div>
 
-      {/* Navigation Controls */}
-      <div className="p-8 md:p-12 flex items-center justify-between max-w-6xl mx-auto w-full">
+      <div className="px-6 md:px-12 pb-4">
+        <div className="max-w-6xl mx-auto bg-slate-800/80 border border-slate-700 rounded-2xl p-4 space-y-3">
+          <div className="max-h-40 overflow-y-auto space-y-2">
+            {chatHistory.length === 0 ? (
+              <p className="text-slate-400 text-sm">Ask the cooking assistant for substitutions, timing help, or technique tips.</p>
+            ) : (
+              chatHistory.map((message, index) => (
+                <div key={index} className={`text-sm ${message.role === 'assistant' ? 'text-emerald-200' : 'text-slate-200'}`}>
+                  <span className="font-semibold mr-2">{message.role === 'assistant' ? 'Chef AI:' : 'You:'}</span>
+                  <span>{message.content}</span>
+                </div>
+              ))
+            )}
+          </div>
+          <form onSubmit={submitQuestion} className="flex gap-2">
+            <input
+              value={question}
+              onChange={(event) => setQuestion(event.target.value)}
+              placeholder="Ask a question about this recipe..."
+              className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+            <button
+              type="submit"
+              disabled={chatLoading}
+              className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 px-4 py-2 rounded-xl text-sm font-semibold"
+            >
+              {chatLoading ? 'Asking...' : 'Ask'}
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div className="p-8 md:p-12 pt-2 flex items-center justify-between max-w-6xl mx-auto w-full">
          <button
            onClick={() => setCurrentStep(prev => Math.max(0, prev - 1))}
            disabled={currentStep === 0}
