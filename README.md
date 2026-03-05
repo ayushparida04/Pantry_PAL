@@ -1,65 +1,80 @@
-# Pantry_PAL (SmartPantry AI)
+# 🍳 Pantry_PAL — SmartPantry AI
 
-Pantry_PAL is an AI-powered kitchen assistant that helps you turn pantry ingredients into practical recipes, reduce food waste, and get step-by-step cooking guidance. The project now uses a **React + TypeScript frontend** and a **Python FastAPI + LangChain backend**.
+> **Turn your fridge into a 5-star kitchen.** AI-powered meal planning that generates recipes, step-by-step cooking guidance, and nutritional info — from ingredients you already have.
 
-## Architecture
+---
 
-```mermaid
-flowchart LR
-    A[React + TypeScript Frontend\nVite @ localhost:5173] -->|REST API| B[FastAPI Backend @ localhost:8000]
-    B --> C[LangChain Chains\nRecipe Suggestions + Detail]
-    B --> D[Google Gemini API\ngemini-2.0-flash]
-    B --> E[(SQLite Database)]
-    E --> E1[pantry_items]
-    E --> E2[cached_recipes]
+## ✨ Features
+
+- 🧠 **AI Recipe Generation** — Powered by Google Gemini, suggests 3-4 personalized recipes from your pantry
+- 📋 **Smart Ingredient Parsing** — Understands natural inputs like "3 large eggs" or "half a bunch of cilantro"
+- 🥗 **Nutritional Intelligence** — Auto-estimates calories, protein, carbs, and fats for every dish
+- 🖼️ **AI Food Photography** — Visualizes your meal before you start cooking
+- 👨‍🍳 **Interactive Cooking Mode** — Distraction-free step-by-step cooking with a live Q&A chatbot
+- ♻️ **Waste Reducer** — Prioritizes recipes that use up what you already have
+- 💾 **Real Persistence** — SQLite-backed pantry storage via a REST API
+
+---
+
+## 🏗️ Architecture
+
+```
+React Frontend (Vite + TypeScript)
+          ↓  HTTP fetch
+FastAPI Backend (Python)
+          ↓
+LangChain Agent  →  Google Gemini API (gemini-2.0-flash)
+          ↓
+    SQLite Database (SQLAlchemy async)
 ```
 
-## Tech Stack
+---
 
-- React
-- TypeScript
-- Tailwind CSS
-- Python
-- FastAPI
-- LangChain
-- Google Gemini
-- SQLite
-- SQLAlchemy
-- Pydantic
-- Vite
+## 🛠️ Tech Stack
 
-## How to run locally
+| Layer | Technology |
+|-------|------------|
+| **Frontend** | React 19, TypeScript, Tailwind CSS, Vite |
+| **Backend** | Python 3.11, FastAPI, Uvicorn |
+| **AI / LLM** | LangChain (LCEL), Google Gemini `gemini-2.0-flash` |
+| **Database** | SQLite, SQLAlchemy (async), Pydantic v2 |
+| **DevOps** | Docker, Docker Compose |
 
-### 1) Backend setup
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Python 3.11+
+- Node.js 18+
+- A [Google Gemini API key](https://aistudio.google.com/app/apikey)
+
+### 1️⃣ Backend
 
 ```bash
 cd backend
 python -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env
-# Edit .env and set GEMINI_API_KEY
+cp .env.example .env           # Add your GEMINI_API_KEY
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 2) Frontend setup
+### 2️⃣ Frontend
 
 ```bash
-# from repo root
-cp frontend/.env.example .env
+cd frontend
+cp .env.example .env           # VITE_API_BASE_URL=http://localhost:8000
 npm install
 npm run dev
 ```
 
-The frontend reads `VITE_API_BASE_URL` from `.env` and defaults to `http://localhost:8000`.
+### 🐳 Docker
 
-## API Overview
+```bash
+docker-compose up --build
+```
 
-- `GET /api/pantry`
-- `POST /api/pantry`
-- `DELETE /api/pantry/{item_id}`
-- `DELETE /api/pantry`
-- `POST /api/recipes/suggestions`
-- `POST /api/recipes/detail`
-- `POST /api/recipes/image`
-- `POST /api/recipes/chat`
+---
+
+Built with ❤️ by [Ayush Parida](https://github.com/ayushparida04)
